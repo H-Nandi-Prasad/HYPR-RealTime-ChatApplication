@@ -1,0 +1,48 @@
+# render.yaml
+
+services:
+  # Server (Node.js)
+  - type: web
+    name: chat-server
+    runtime: node
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        fromDatabase:
+          name: chat-database
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CLIENT_URL
+        fromService:
+          type: static
+          name: chat-client
+          property: url
+    buildCommand: |
+      npm install
+      cd server
+      npm install
+    startCommand: node server/server.js
+
+  # Client (React Static Site)
+  - type: static
+    name: chat-client
+    buildCommand: |
+      cd client
+      npm install
+      npm run build
+    staticPublishPath: client/build
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+databases:
+  # MongoDB Database
+  - name: chat-database
+    plan: free
+    databaseName: realtime-chat
+    ipAllowList: [] # Allow access from anywhere
